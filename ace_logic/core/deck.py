@@ -2,8 +2,9 @@ import random
 from typing import List
 
 from ace_logic.core.card import Card, Suit, Rank
+from ace_logic.utils.logger import setup_logger
 
-
+logger = setup_logger(__name__)
 class Deck:
     """牌堆类：管理 52 张扑克牌"""
 
@@ -23,6 +24,7 @@ class Deck:
         """
         if num > len(self._cards):
             # 这里的异常处理体现了后端开发的防御性编程思维
+            logger.error(f"发牌失败,剩余: {len(self._cards)}, 请求: {num}")
             raise ValueError(f"牌堆剩余牌量不足！剩余: {len(self._cards)}, 请求: {num}")
 
         dealt_cards = [self._cards.pop() for _ in range(num)]
