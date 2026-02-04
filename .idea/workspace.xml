@@ -1,11 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="4461a6bb-0b0a-4650-babc-6f54851c06f7" name="Changes" comment="" />
+    <list default="true" id="4461a6bb-0b0a-4650-babc-6f54851c06f7" name="Changes" comment="PUSH TEST">
+      <change afterPath="$PROJECT_DIR$/ace_logic/core/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ace_logic/core/card.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ace_logic/core/deck.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ace_logic/utils/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ace_logic/utils/evaluator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/test_card.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/test_run.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -14,16 +33,31 @@
   "associatedIndex": 8
 }]]></component>
   <component name="ProjectId" id="39B0KBdAKm8zdArCTOdm6mzDvCJ" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true"
+    "Python.test_card.executor": "Run",
+    "Python.test_run.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\preju\PycharmProjects\AceLogic\ace_logic\core" />
+      <recent name="C:\Users\preju\PycharmProjects\AceLogic\ace_logic\utils" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -39,6 +73,50 @@
       <option name="presentableId" value="Default" />
       <updated>1770154089370</updated>
     </task>
+    <task id="LOCAL-00001" summary="PUSH TEST">
+      <option name="closed" value="true" />
+      <created>1770154173720</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1770154173720</updated>
+    </task>
+    <task id="LOCAL-00002" summary="PUSH TEST">
+      <option name="closed" value="true" />
+      <created>1770154197883</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1770154197883</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="master" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="PUSH TEST" />
+    <option name="LAST_COMMIT_MESSAGE" value="PUSH TEST" />
   </component>
 </project>
