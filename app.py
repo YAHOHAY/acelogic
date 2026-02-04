@@ -16,7 +16,7 @@ def read_root():
 
 
 @app.get("/deal")
-def deal_cards(count: int = Query(5, gt=0, le=52)):
+def deal_cards(count: int = Query(2, gt=0, le=52)):
     """
     发牌接口：可以通过 ?count=5 来指定张数
     """
@@ -53,4 +53,17 @@ def evaluate_best():
         "best_hand": [str(c) for c in best_hand],
         "hand_type_score": score[0],
         "rank_details": score[1]
+    }
+
+@app.get("/evaluate")
+def evaluate_cards():
+    deck = Deck()
+    deck.shuffle()
+    cards = deck.deal(5)
+    hand = HandEvaluator.evaluate(cards)
+    return {
+        "all_cards": [str(c) for c in cards],
+        "hand_cards": hand ,
+        "hand_type": HandEvaluator.evaluate_to_str(hand[0]),
+        "hand_sorce": hand[0]
     }

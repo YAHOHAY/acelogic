@@ -64,6 +64,14 @@ class HandEvaluator:
         # (基于 evaluate 返回的元组找出最大值)
         best_hand = max(all_combinations, key=HandEvaluator.evaluate)
         return best_hand, HandEvaluator.evaluate(best_hand)
+    @staticmethod
+    def evaluate_to_str(num : int) -> str:
+        return [
+        "High Card", "Pair", "Two Pair", "Three of a Kind",
+        "Straight", "Flush", "Full House", "Four of a Kind",
+        "Straight Flush", "Royal Flush"
+    ][num]
+
 
 
 

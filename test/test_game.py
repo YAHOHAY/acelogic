@@ -37,10 +37,3 @@ def test_game():
         print("\n🏆 RESULT: Player B WINS!")
     else:
         print("\n🤝 RESULT: It's a TIE (Split Pot)!")
-
-HandEvaluator.evaluate_to_str = staticmethod(lambda s: [
-        "High Card", "Pair", "Two Pair", "Three of a Kind",
-        "Straight", "Flush", "Full House", "Four of a Kind",
-        "Straight Flush", "Royal Flush"
-    ][s])
-
