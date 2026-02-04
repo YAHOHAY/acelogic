@@ -2,6 +2,7 @@ from collections import Counter
 from itertools import combinations
 
 from ace_logic.core.card import Card, Rank
+from ace_logic.core.exceptions import InvalidHandSizeError
 from ace_logic.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -23,7 +24,7 @@ class HandEvaluator:
 
         if len(cards) != 5 :
             logger.error(f"Evaluation failed: Expected 5 cards, got {len(cards)}")
-            raise ValueError("Exactly 5 cards are required for evaluation.")
+            raise InvalidHandSizeError("Exactly 5 cards are required for evaluation.")
         cards.sort(reverse=True)
         ranks = [c.rank for c in cards]
         suits = [c.suit for c in cards]
