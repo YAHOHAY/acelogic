@@ -12,18 +12,18 @@ class Suit(Enum):
 
 class Rank(IntEnum):
     """点数枚举：继承 IntEnum 方便直接进行大小比较"""
-    TWO = 2;
-    THREE = 3;
-    FOUR = 4;
-    FIVE = 5;
-    SIX = 6;
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
+    SIX = 6
     SEVEN = 7
-    EIGHT = 8;
-    NINE = 9;
-    TEN = 10;
-    JACK = 11;
-    QUEEN = 12;
-    KING = 13;
+    EIGHT = 8
+    NINE = 9
+    TEN = 10
+    JACK = 11
+    QUEEN = 12
+    KING = 13
     ACE = 14
 
 
