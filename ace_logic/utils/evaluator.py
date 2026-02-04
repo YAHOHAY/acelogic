@@ -15,6 +15,11 @@ class HandEvaluator:
         return (max(ranks) - min(ranks)) == 4 and len(set(ranks)) == 5
     @staticmethod
     def evaluate(cards: list[Card]) -> tuple:
+        #FIx start
+        if isinstance(cards, tuple):
+            cards = list(cards)
+        #Fix end
+
         if len(cards) != 5 :
             raise ValueError("Exactly 5 cards are required for evaluation.")
         cards.sort(reverse=True)
@@ -55,7 +60,7 @@ class HandEvaluator:
         # Maximize based on the score tuple returned by evaluate()
         # (基于 evaluate 返回的元组找出最大值)
         best_hand = max(all_combinations, key=HandEvaluator.evaluate)
-        return best_hand, HandEvaluator.evaluate(list(best_hand))
+        return best_hand, HandEvaluator.evaluate(best_hand)
 
 
 
