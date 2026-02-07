@@ -6,15 +6,35 @@ from ace_logic.core.exceptions import InvalidHandSizeError
 from ace_logic.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+
+STRAIGHT_MASKS = [
+    0x1F00, # 10-J-Q-K-A (1111100000000) - 大顺子 (Broadway)
+    0x0F80, # 9-10-J-Q-K  (0111110000000)
+    0x07C0, # 8-9-10-J-Q  (0011111000000)
+    0x03E0, # 7-8-9-10-J  (0001111100000)
+    0x01F0, # 6-7-8-9-10  (0000111110000)
+    0x00F8, # 5-6-7-8-9   (0000011111000)
+    0x007C, # 4-5-6-7-8   (0000001111100)
+    0x003E, # 3-4-5-6-7   (0000000111110)
+    0x001F, # 2-3-4-5-6   (0000000011111)
+    0x100F  # A-2-3-4-5   (1000000001111) - 小顺子 (Wheel, A在这里当1用)
+]
 class HandEvaluator:
     @staticmethod
-    def _is_straight(ranks: list[Rank]) -> bool:
-        """判定是否为顺子的辅助方法"""
-        # 处理德州扑克特殊顺子：A-2-3-4-5
-        low_straight = [Rank.ACE, Rank.FIVE, Rank.FOUR, Rank.THREE, Rank.TWO]
-        if ranks == low_straight:
-            return True
-        return (max(ranks) - min(ranks)) == 4 and len(set(ranks)) == 5
+    def is_flush(cards: list[Card]) -> bool:
+        return (cards[0].value & cards[1].value & cards[2].value & cards[3].value & cards[4].value & 0xF000) != 0
+    @staticmethod
+    def _is_straight(cards: list[Card]) -> bool:
+
+        hand_mask = (cards[0].value | cards[1].value | cards[2].value |
+                     cards[3].value | cards[4].value) & 0x1FFF
+        return hand_mask in STRAIGHT_MASKS  # 这是一个包含 10 个整数的预设集合
+
+
+
+
+
     @staticmethod
     def evaluate(cards: list[Card]) -> tuple:
         #FIx start

@@ -1,17 +1,16 @@
-from enum import Enum, IntEnum
-from typing import Optional
+from enum import IntEnum
 
 
-class Suit(Enum):
-    """花色枚举：使用 Unicode 字符增强控制台展示效果"""
-    SPADES = "♠"
-    HEARTS = "♥"
-    DIAMONDS = "♦"
-    CLUBS = "♣"
+class Suit(IntEnum):
+    """花色位掩码：分别占据二进制的第12, 13, 14, 15位"""
+    SPADES = 0x1000  # 0001 ...
+    HEARTS = 0x2000  # 0010 ...
+    DIAMONDS = 0x4000  # 0100 ...
+    CLUBS = 0x8000  # 1000 ...
 
 
 class Rank(IntEnum):
-    """点数枚举：继承 IntEnum 方便直接进行大小比较"""
+    """点数：2-14，直接对应数值"""
     TWO = 2
     THREE = 3
     FOUR = 4
@@ -28,25 +27,47 @@ class Rank(IntEnum):
 
 
 class Card:
-    """扑克牌类：这是项目的原子级模型"""
+    # 13个点数对应的质数（2-A）
+    PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41]
 
-    def __init__(self, suit: Suit, rank: Rank):
-        self.suit = suit
-        self.rank = rank
+    # 方便人类阅读的映射
+    RANK_MAP = {2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9',
+                10: 'T', 11: 'J', 12: 'Q', 13: 'K', 14: 'A'}
+    SUIT_MAP = {0x1000: '♠', 0x2000: '♥', 0x4000: '♦', 0x8000: '♣'}
 
-    def __repr__(self) -> str:
-        """
-        魔术方法：定义对象在 print 或调试时的显示方式。
-        脱颖而出点：不仅显示 A，还能显示 ACE 的权重。
-        """
-        return f"{self.suit.value}{self.rank.name.capitalize()}"
+    def __init__(self, rank: Rank, suit: Suit):
+        self._rank = rank
+        self._suit = suit
 
-    def __eq__(self, other: object) -> bool:
-        """判断两张牌是否相等"""
-        if not isinstance(other, Card):
-            return False
-        return self.suit == other.suit and self.rank == other.rank
+        # 核心：32位编码
+        # 16-31位: 质数 (Prime)
+        # 12-15位: 花色 (Suit mask)
+        # 8-11位 : 数值 (Rank value)
+        # 0-12位 : 点数位掩码 (Bitmask)
+        prime = self.PRIMES[rank.value - 2]
+        bitmask = 1 << (rank.value - 2)
 
-    def __lt__(self, other: 'Card') -> bool:
-        """定义小于逻辑，方便后续对整手牌进行排序"""
-        return self.rank < other.rank
+        self._value = (prime << 16) | suit.value | (rank.value << 8) | bitmask
+
+    @property
+    def rank(self):
+        """只读属性：外部只能 card.rank，不能 card.rank = NewRank"""
+        return self._rank
+
+    @property
+    def suit(self):
+        """只读属性"""
+        return self._suit
+
+    @property
+    def value(self):
+        """只读的核心编码：这就是 Acelogic 的真理"""
+        return self._value
+
+    def __repr__(self):
+        """控制台展示：例如 'A♠'"""
+        return f"{self.RANK_MAP[self.rank.value]}{self.SUIT_MAP[self.suit.value]}"
+
+    def display_binary(self):
+        """调试用：查看这张牌的二进制全貌"""
+        return f"{self.value:032b}"
