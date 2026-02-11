@@ -2,12 +2,11 @@ from enum import IntEnum
 
 
 class Suit(IntEnum):
-    """花色位掩码：分别占据二进制的第12, 13, 14, 15位"""
-    SPADES = 0x1000  # 0001 ...
-    HEARTS = 0x2000  # 0010 ...
-    DIAMONDS = 0x4000  # 0100 ...
-    CLUBS = 0x8000  # 1000 ...
-
+            """花色位掩码：分别占据二进制的第12, 13, 14, 15位"""
+            SPADES = 0x2000  # 1 << 13
+            HEARTS = 0x4000  # 1 << 14
+            DIAMONDS = 0x8000  # 1 << 15
+            CLUBS = 0x10000  # 1 << 16
 
 class Rank(IntEnum):
     """点数：2-14，直接对应数值"""
@@ -33,21 +32,26 @@ class Card:
     # 方便人类阅读的映射
     RANK_MAP = {2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9',
                 10: 'T', 11: 'J', 12: 'Q', 13: 'K', 14: 'A'}
-    SUIT_MAP = {0x1000: '♠', 0x2000: '♥', 0x4000: '♦', 0x8000: '♣'}
+    SUIT_MAP = {0x2000: '♠', 0x4000: '♥', 0x8000: '♦', 0x10000: '♣'}
 
     def __init__(self, rank: Rank, suit: Suit):
         self._rank = rank
         self._suit = suit
-
-        # 核心：32位编码
-        # 16-31位: 质数 (Prime)
-        # 12-15位: 花色 (Suit mask)
-        # 8-11位 : 数值 (Rank value)
-        # 0-12位 : 点数位掩码 (Bitmask)
-        prime = self.PRIMES[rank.value - 2]
+        # 0-12位: 点数掩码
         bitmask = 1 << (rank.value - 2)
 
-        self._value = (prime << 16) | suit.value | (rank.value << 8) | bitmask
+        # 13-16位: 花色掩码
+        suit_mask = suit.value
+
+        # 17-20位: 点数数值
+        rank_val = rank.value << 17
+
+        # 21-26位: 质数 (最大的质数41只需要6位)
+        prime = self.PRIMES[rank.value - 2]
+        prime_val = prime << 21
+
+        # 组装核心编码
+        self._value = prime_val | rank_val | suit_mask | bitmask
 
     @property
     def rank(self):

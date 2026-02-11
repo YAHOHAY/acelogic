@@ -11,7 +11,7 @@ class Deck:
 
     def __init__(self):
         # 核心亮点：使用列表推导式一行生成 52 张牌，优雅且高效
-        self._cards: List[Card] = [Card(suit, rank) for suit in Suit for rank in Rank]
+        self._cards: List[Card] = [Card(rank, suit) for suit in Suit for rank in Rank]
 
     def shuffle(self) -> None:
         """洗牌：直接利用 Python 标准库的强大功能"""
