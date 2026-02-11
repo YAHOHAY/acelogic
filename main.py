@@ -1,60 +1,106 @@
-import sys
-from ace_logic.core.deck import Deck
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List
+import time
+from contextlib import asynccontextmanager # 引入这个用于生命周期管理
+
+from ace_logic.core.card import Card, Rank, Suit
 from ace_logic.utils.evaluator import HandEvaluator
-from ace_logic.utils.logger import setup_logger
-from ace_logic.core.exceptions import AceLogicError
-
-# 1. 动态获取当前模块的 logger (动态模块名)
-logger = setup_logger(__name__)
+from ace_logic.utils.ratecalculate import WinRateCalculator
 
 
-def play_one_round():
+# --- 1. 定义生命周期管理器 (Lifespan) ---
+# 这是 FastAPI 推荐的“预热”方式：在服务启动前把重型资源加载好
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("🚀 System Startup: Loading Lookup Table...")
+    HandEvaluator.load_lookup_table() # <--- 关键！显式加载表
+    print(f"✅ Lookup Table Loaded. Engine is ready.")
+    yield
+    print("🛑 System Shutdown.")
+
+# --- 2. 注入生命周期 ---
+app = FastAPI(title="AceLogic API", version="2.0", lifespan=lifespan)
+
+# 3. 初始化计算器 (保持不变)
+
+calculator = WinRateCalculator(iterations=10000)
+
+# --- 定义请求/响应模型 ---
+class WinRateRequest(BaseModel):
+    hole_cards: List[str]  # 例如 ["Ah", "Kd"]
+    community_cards: List[str] = []  # 例如 ["Qs", "Js", "Ts"]
+    opponent_count: int = 1
+
+
+class WinRateResponse(BaseModel):
+    win_rate: float
+    elapsed_time: float
+    hands_per_second: float
+
+
+# --- 辅助工具：字符串 -> Card 对象 ---
+# 需要把 "Ah" 解析成 Card(Rank.ACE, Suit.HEARTS)
+def parse_card(card_str: str) -> Card:
+    if len(card_str) != 2:
+        raise ValueError(f"Invalid card format: {card_str}")
+
+    rank_char = card_str[0].upper()
+    suit_char = card_str[1].lower()
+
+    # 映射表
+    rank_map = {
+        '2': Rank.TWO, '3': Rank.THREE, '4': Rank.FOUR, '5': Rank.FIVE,
+        '6': Rank.SIX, '7': Rank.SEVEN, '8': Rank.EIGHT, '9': Rank.NINE,
+        'T': Rank.TEN, 'J': Rank.JACK, 'Q': Rank.QUEEN, 'K': Rank.KING, 'A': Rank.ACE
+    }
+    # 注意：你的 Suit 定义值是位掩码，这里只做映射
+    suit_map = {
+        's': Suit.SPADES, 'h': Suit.HEARTS,
+        'd': Suit.DIAMONDS, 'c': Suit.CLUBS
+    }
+
+    if rank_char not in rank_map or suit_char not in suit_map:
+        raise ValueError(f"Unknown card: {card_str}")
+
+    return Card(rank_map[rank_char], suit_map[suit_char])
+
+
+@app.post("/win_rate", response_model=WinRateResponse)
+async def calculate_win_rate(request: WinRateRequest):
     """
-    模拟一局完整的德州扑克对决逻辑
+    计算胜率的核心接口
     """
-    logger.info("--- Starting a professional Texas Hold'em simulation ---")
-
     try:
-        # 初始化并洗牌
-        deck = Deck()
-        deck.shuffle()
+        # 1. 解析卡牌字符串
+        my_hole = [parse_card(c) for c in request.hole_cards]
+        community = [parse_card(c) for c in request.community_cards]
 
-        # 发牌逻辑 (底牌与公共牌)
-        player_a_hole = deck.deal(2)
-        player_b_hole = deck.deal(2)
-        community_cards = deck.deal(5)
+        # 2. 计时开始
+        start_time = time.perf_counter()
 
-        logger.info(f"Community Cards: {community_cards}")
-        logger.info(f"Player A: {player_a_hole} | Player B: {player_b_hole}")
+        # 3. 调用蒙特卡洛引擎
+        rate = calculator.calculate(my_hole, community, request.opponent_count)
 
-        # 计算两名玩家的最佳 5 张牌组合
-        # (这里利用了你写的 7-choose-5 逻辑)
-        best_a, score_a = HandEvaluator.get_best_hand(player_a_hole + community_cards)
-        best_b, score_b = HandEvaluator.get_best_hand(player_b_hole + community_cards)
+        # 4. 计时结束
+        end_time = time.perf_counter()
+        elapsed = end_time - start_time
 
-        print("-" * 66)
-        print(f"Player A's Best: {best_a} -> Rank: {score_a[0]}")
-        print(f"Player B's Best: {best_b} -> Rank: {score_b[0]}")
+        # 计算吞吐量 (每次模拟涉及 opponent_count + 1 个玩家)
+        # 这里的 throughput 估算比较粗略，主要看 elapsed
 
-        # 利用元组比较机制判定胜负
-        if score_a > score_b:
-            result_msg = "🏆 Result: Player A WINS!"
-        elif score_a < score_b:
-            result_msg = "🏆 Result: Player B WINS!"
-        else:
-            result_msg = "🤝 Result: It's a TIE (Split Pot)!"
+        return WinRateResponse(
+            win_rate=rate,
+            elapsed_time=elapsed,
+            hands_per_second=calculator.iterations / elapsed
+        )
 
-        print(result_msg)
-        logger.info(result_msg)
-
-    except AceLogicError as e:
-        # 这里展示了你自定义异常的威力：精准捕获业务错误
-        logger.error(f"Game simulation aborted due to business error: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        # 兜底捕获未知的系统错误
-        logger.critical(f"Unexpected system crash: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-if __name__ == "__main__":
-    # 允许通过命令行多次运行
-    play_one_round()
+@app.get("/")
+def health_check():
+    return {"status": "AceLogic 2.0 is running", "engine": "Integer Stream Optimized"}

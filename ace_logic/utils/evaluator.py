@@ -59,82 +59,85 @@ class HandEvaluator:
 
         return cls._LOOKUP_TABLE
 
+    @staticmethod
+    def evaluate_fast(card_values: tuple) -> int:
+        """
+        ⚡️ 极速内核：只接收整数元组，不处理 Card 对象。
+        去掉所有对象访问，只做位运算。
+        """
+        hand_mask = 0
+        suit_check = 0x1E000
+        prime_prod = 1
+
+        # 在 C 语言层面的迭代速度：tuple > list
+        for val in card_values:
+            hand_mask |= (val & 0x1FFF)
+            suit_check &= (val & 0x1E000)
+            prime_prod *= (val >> 21)
+
+        # 逻辑与之前一致，但全是局部变量和整数
+        if suit_check:  # 非0即为True，比 != 0 微快
+            if hand_mask in STRAIGHT_MASKS:
+                return 9000000 + hand_mask if hand_mask == 0x1F00 else 8000000 + hand_mask
+            return 5000000 + hand_mask
+
+        if hand_mask in STRAIGHT_MASKS:
+            return 4000000 + hand_mask
+
+        return HandEvaluator._LOOKUP_TABLE.get(prime_prod, 0)
+
 
 
 
 
     @staticmethod
     def evaluate(cards: list[Card]) -> tuple[int, int]:
-        #FIx start
-        if isinstance(cards, tuple):
-            cards = list(cards)
-        #Fix end
-
-        if len(cards) != 5 :
-            logger.error(f"Evaluation failed: Expected 5 cards, got {len(cards)}")
-            raise InvalidHandSizeError("Exactly 5 cards are required for evaluation.")
-        """
-                核心评估算法：返回 (牌型等级, 辅助位掩码)
-                等级: 0-高牌, 1-对子 ... 8-同花顺, 9-皇家同花顺
-                """
-
-        # 1. 提取基本特征
-        # bitmask 用于顺子判定
-        # suit_check 用于同花判定
-        # prime_prod 用于查表判定重复点数
-        hand_mask = 0
-        suit_check = 0xF000
-        prime_prod = 1
-
-        for c in cards:
-            val = c.value
-            hand_mask |= (val & 0x1FFF)
-            suit_check &= (val & 0x1E000)
-            prime_prod *= (val >> 21)
-
-
-        is_flush = (suit_check != 0)
-        is_straight = hand_mask in STRAIGHT_MASKS
-
-        # 2. 处理顺子和同花 (特殊逻辑，不完全依赖查表)
-        if is_flush and is_straight:
-            # 皇家同花顺判定 (10-J-Q-K-A 的掩码是 0x1F00)
-            if hand_mask == 0x1F00:
-                return (9*ONEMILLION + hand_mask, hand_mask)
-            return (8*ONEMILLION+ hand_mask, hand_mask)
-
-        if is_flush:
-            return (5*ONEMILLION+ hand_mask, hand_mask)
-
-        if is_straight:
-            return (4*ONEMILLION+ hand_mask, hand_mask)
-
-        # 3. 查表处理其余牌型 (四条、葫芦、三条、两对、一对、高牌)
-        # 质数积是这些牌型的唯一标识
-        if HandEvaluator._LOOKUP_TABLE is None:
-            # 自动加载默认路径下的表
-            HandEvaluator.load_lookup_table()
-
-        score = HandEvaluator._LOOKUP_TABLE.get(prime_prod, 0)
-        return (score, hand_mask)
+        """兼容旧接口的慢速版 (用于单次调用或展示)"""
+        # 即使是旧接口，也可以利用 fast 版加速
+        values = tuple(c.value for c in cards)
+        score = HandEvaluator.evaluate_fast(values)
+        # 重新计算 mask 用于返回
+        mask = 0
+        for v in values: mask |= (v & 0x1FFF)
+        return (score, mask)
 
     @staticmethod
     def get_best_hand(seven_cards: list[Card]):
-        all_combinations = combinations(seven_cards, 5)
+        """
+        🚀 优化后的 7 选 5：
+        1. 对象 -> 整数 (只做 1 次)
+        2. 整数排列组合 (C 语言级循环)
+        3. 整数评估
+        4. 整数 -> 对象还原 (只做 1 次)
+        """
+        # 1. 预处理：建立 整数->对象 的映射，同时提取 value
+        # 这里用 list 而不是 dict.values() 是为了保证顺序，方便还原
+        card_map = {c.value: c for c in seven_cards}
+        raw_values = list(card_map.keys())
 
-        # FIX: 保存 (牌组, 分数元组) 以便最后返回牌组
-        # 使用 max 函数一次性搞定，减少 list append 开销
-        # key 必须比 x[1][0] (即 evaluate 返回元组的第一个元素：强度分)
+        # 2. 核心加速：itertools 处理 int 比处理 Card 对象快得多
+        # 生成的是 (int, int, int, int, int) 的元组流
+        all_combinations_vals = combinations(raw_values, 5)
 
-        # 临时包装一下以便 max 处理
-        def get_score_bundle(combo):
-            return (list(combo), HandEvaluator.evaluate(list(combo)))
+        best_score = -1
+        best_vals = None
 
-        # 这里的 max 会遍历所有组合，对每个组合调用 get_score_bundle
-        # 然后根据 key=lambda x: x[1][0] (即 strength) 找出最大的那个包
-        best_combo, score_tuple = max(map(get_score_bundle, all_combinations), key=lambda x: x[1][0])
+        # 3. 极速循环 (Hot Path)
+        # 这里没有任何 .value 访问，没有对象创建，只有纯粹的数字计算
+        for combo_vals in all_combinations_vals:
+            score = HandEvaluator.evaluate_fast(combo_vals)
+            if score > best_score:
+                best_score = score
+                best_vals = combo_vals
 
-        return best_combo, score_tuple
+        # 4. 还原结果：从最好的 5 个 int 找回 5 个 Card 对象
+        best_hand_cards = [card_map[v] for v in best_vals]
+
+        # 计算辅助掩码 (低频操作，不影响大局)
+        final_mask = 0
+        for v in best_vals: final_mask |= (v & 0x1FFF)
+
+        return best_hand_cards, (best_score, final_mask)
 
     @staticmethod
     def evaluate_to_str(strength: int) -> str:
