@@ -1,12 +1,16 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List
 import time
 from contextlib import asynccontextmanager # 引入这个用于生命周期管理
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ace_logic.core.card import Card, Rank, Suit
 from ace_logic.utils.evaluator import HandEvaluator
 from ace_logic.utils.ratecalculate import WinRateCalculator
+from db.models import CalculationLog
+from db.session import get_db
 
 
 # --- 1. 定义生命周期管理器 (Lifespan) ---
@@ -67,10 +71,54 @@ def parse_card(card_str: str) -> Card:
 
 
 @app.post("/win_rate", response_model=WinRateResponse)
+async def calculate_win_rate(
+        request: WinRateRequest,
+        db: AsyncSession = Depends(get_db)  # <-- 注入数据库会话
+):
+    try:
+        # 1. 解析 & 2. 计时 & 3. 计算 (保持不变)
+        my_hole = [parse_card(c) for c in request.hole_cards]
+        community = [parse_card(c) for c in request.community_cards]
+
+        start_time = time.perf_counter()
+        rate = calculator.calculate(my_hole, community, request.opponent_count)
+        end_time = time.perf_counter()
+
+        elapsed = end_time - start_time
+        throughput = calculator.iterations / elapsed
+
+        # --- 4. 异步写入数据库 (核心新增) ---
+        # 这是一个 I/O 操作，但在 async 下它不会阻塞 CPU 计算
+        log_entry = CalculationLog(
+            hole_cards=request.hole_cards,
+            community_cards=request.community_cards,
+            opponent_count=request.opponent_count,
+            win_rate=rate,
+            hands_per_second=throughput
+        )
+        db.add(log_entry)
+        await db.commit()  # 提交事务
+        await db.refresh(log_entry)  # 刷新以获取生成的 id
+
+        # 打印日志 ID 证明写入成功
+        print(f"✅ Log saved with ID: {log_entry.id}")
+
+        return WinRateResponse(
+            win_rate=rate,
+            elapsed_time=elapsed,
+            hands_per_second=throughput
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+"""
+@app.post("/win_rate", response_model=WinRateResponse)
 async def calculate_win_rate(request: WinRateRequest):
-    """
+
     计算胜率的核心接口
-    """
+
     try:
         # 1. 解析卡牌字符串
         my_hole = [parse_card(c) for c in request.hole_cards]
@@ -98,7 +146,7 @@ async def calculate_win_rate(request: WinRateRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))"""
 
 
 @app.get("/")
