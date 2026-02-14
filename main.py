@@ -5,6 +5,7 @@ import time
 from contextlib import asynccontextmanager # 引入这个用于生命周期管理
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from ace_logic.core.card import Card, Rank, Suit
 from ace_logic.utils.evaluator import HandEvaluator
@@ -70,6 +71,19 @@ def parse_card(card_str: str) -> Card:
     return Card(rank_map[rank_char], suit_map[suit_char])
 
 
+@app.get("/logs")
+async def get_calculation_logs(limit: int = 10, db: AsyncSession = Depends(get_db)):
+    """
+    获取最近的胜率计算历史
+    """
+    # 构建一个异步查询：按时间倒序排列，取前 limit 条
+    query = select(CalculationLog).order_by(CalculationLog.created_at.desc()).limit(limit)
+    result = await db.execute(query)
+
+    # scalars().all() 会把查询结果转换成对象列表
+    logs = result.scalars().all()
+
+    return logs
 @app.post("/win_rate", response_model=WinRateResponse)
 async def calculate_win_rate(
         request: WinRateRequest,
@@ -113,6 +127,9 @@ async def calculate_win_rate(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
 """
 @app.post("/win_rate", response_model=WinRateResponse)
 async def calculate_win_rate(request: WinRateRequest):

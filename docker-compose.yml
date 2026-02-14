@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  # --- 你的 Python 核心 API 服务 ---
+  api:
+    build: .  # 告诉 docker 去当前目录找 Dockerfile 进行构建
+    container_name: acelogic_api
+    ports:
+      - "8000:8000" # 把容器的 8000 映射到你电脑的 8000
+    depends_on:
+      - db  # 重点：告诉 Docker，API 必须等 DB 启动后再启动
+    environment:
+      # 这里就是传给 Python 的环境变量！
+      # 注意这里的 URL 变成了 @db:5432，Docker 的内部 DNS 会自动把它解析到下面的 db 容器
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/acelogic_db
+        # 👇 加上这两行“魔法代码” 👇
+    volumes:
+      - .:/app  # 把当前目录(.) 映射到容器里的 /app 目录
   db:
     image: postgres:15-alpine
     container_name: acelogic_postgres
