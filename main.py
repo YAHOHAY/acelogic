@@ -36,12 +36,14 @@ class WinRateRequest(BaseModel):
     hole_cards: List[str]  # 例如 ["Ah", "Kd"]
     community_cards: List[str] = []  # 例如 ["Qs", "Js", "Ts"]
     opponent_count: int = 1
+    user_name: str = "Anonymous"
 
 
 class WinRateResponse(BaseModel):
     win_rate: float
     elapsed_time: float
     hands_per_second: float
+    user_name : str = "Anonymous"
 
 
 # --- 辅助工具：字符串 -> Card 对象 ---
@@ -100,6 +102,7 @@ async def calculate_win_rate(
 
         elapsed = end_time - start_time
         throughput = calculator.iterations / elapsed
+        username = request.user_name
 
         # --- 4. 异步写入数据库 (核心新增) ---
         # 这是一个 I/O 操作，但在 async 下它不会阻塞 CPU 计算
@@ -108,7 +111,8 @@ async def calculate_win_rate(
             community_cards=request.community_cards,
             opponent_count=request.opponent_count,
             win_rate=rate,
-            hands_per_second=throughput
+            hands_per_second=throughput,
+            user_name=username,
         )
         db.add(log_entry)
         await db.commit()  # 提交事务
@@ -120,7 +124,8 @@ async def calculate_win_rate(
         return WinRateResponse(
             win_rate=rate,
             elapsed_time=elapsed,
-            hands_per_second=throughput
+            hands_per_second=throughput,
+            user_name=username,
         )
 
     except ValueError as e:

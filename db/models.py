@@ -10,6 +10,7 @@ class CalculationLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     # 记录底牌，用 PostgreSQL 的数组类型，非常方便
+    user_name = Column(String)
     hole_cards = Column(ARRAY(String))
     community_cards = Column(ARRAY(String))
     opponent_count = Column(Integer)
