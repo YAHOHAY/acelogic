@@ -17,6 +17,7 @@ class CalculationLog(Base):
     win_rate = Column(Float)
     hands_per_second = Column(Float) # 记录当时的性能，方便日后吹牛
     created_at = Column(DateTime, default=datetime.utcnow)
+    device_info = Column(String, nullable=True)  # 记得引 String
 
     def __repr__(self):
         return f"<Log id={self.id} rate={self.win_rate}>"
