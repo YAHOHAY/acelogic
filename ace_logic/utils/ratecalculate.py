@@ -14,7 +14,10 @@ class WinRateCalculator:
         ties = 0
 
         known_cards = my_hole_cards + community_cards
-        remaining_deck = [c for c in self.full_deck if c not in known_cards]
+        known_values = {c.value for c in known_cards}
+
+        # 👇 通过 Value 进行绝对精准的过滤，确保卡组里绝对不会出现分身牌！
+        remaining_deck = [c for c in self.full_deck if c.value not in known_values]
 
         # 计算每次模拟总共需要抽取的牌数：补齐公共牌 + 对手底牌
         needed_community_count = 5 - len(community_cards)

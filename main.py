@@ -12,8 +12,7 @@ from ace_logic.utils.evaluator import HandEvaluator
 from ace_logic.utils.ratecalculate import WinRateCalculator
 from db.models import CalculationLog
 from db.session import get_db
-
-
+import traceback
 # --- 1. 定义生命周期管理器 (Lifespan) ---
 # 这是 FastAPI 推荐的“预热”方式：在服务启动前把重型资源加载好
 @asynccontextmanager
@@ -131,6 +130,7 @@ async def calculate_win_rate(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
