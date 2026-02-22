@@ -1,3 +1,4 @@
+import random
 import time
 
 from ace_logic.core.deck import Deck
@@ -13,17 +14,21 @@ class AceLogicGame:
 
         # 初始化玩家名单
         self.players = list(players_info.keys())
-
+        # 🌟 新增：记住当前的庄家游标，随机专家
+        self.dealer_button_idx =random.randint(0, len(self.players)-1)
         # 🌟 构建全局共享状态 (State)
         self.state = {
             "pot": 0,
             "community_cards": [],  # 注意：存的是 Card 对象的字符串表达，方便 AI 阅读
             "current_max_bet": 0,
             "action_history": ["--- 新的一局开始了 ---"],
+            "sb_amount": 10, # 小盲注金额 (如: 10)
+            "bb_amount": 20,# 大盲注金额 (如: 20)
+            "ante": 0,  # 底注金额 (如: 0 或 5)
 
             "players": self.players,
             "current_player_idx": 0,
-            "player_positions": {"Alice": "SB", "Bob": "BB", "Charlie": "BTN"},  # 简写位置
+            "player_positions": self._assign_positions(self.players, self.dealer_button_idx),
             "player_stacks": {p: initial_stack for p in self.players},
             "player_status": {p: "active" for p in self.players},
             "player_current_bets": {p: 0 for p in self.players},
@@ -38,6 +43,100 @@ class AceLogicGame:
         self._private_hole_cards = {p: [] for p in self.players}
         self._private_community_cards = []
 
+    def _collect_blinds_and_antes(self):
+        """翻牌前：强制收取底注(Ante)和大小盲注(SB/BB)"""
+        print("\n[荷官] 正在收取底注与盲注...")
+
+        # 1. 收取底注 (Ante)
+        if self.state.get("ante", 0) > 0:
+            for p in self.players:
+                if self.state["player_status"][p] == "active":
+                    actual_ante = min(self.state["ante"], self.state["player_stacks"][p])
+                    self.state["player_stacks"][p] -= actual_ante
+                    self.state["pot"] += actual_ante
+
+        # 2. 找到大小盲玩家
+        sb_player = self._get_player_by_role("SB")
+        bb_player = self._get_player_by_role("BB")
+
+        # 3. 强制扣除小盲 (SB)
+        if sb_player:
+            actual_sb = min(self.state["sb_amount"], self.state["player_stacks"][sb_player])
+            self.state["player_stacks"][sb_player] -= actual_sb
+            self.state["player_current_bets"][sb_player] += actual_sb
+            self.state["pot"] += actual_sb
+
+        # 4. 强制扣除大盲 (BB)
+        if bb_player:
+            actual_bb = min(self.state["bb_amount"], self.state["player_stacks"][bb_player])
+            self.state["player_stacks"][bb_player] -= actual_bb
+            self.state["player_current_bets"][bb_player] += actual_bb
+            self.state["pot"] += actual_bb
+
+            # 刷新桌面最高下注额
+            self.state["current_max_bet"] = actual_bb
+
+        print(f"[荷官] 开局底池死钱达到 {self.state['pot']}，最高面临下注额为 {self.state['current_max_bet']}！\n")
+
+        # ==========================================
+        # 🌟 5. 核心：完美设定翻牌前（Pre-Flop）的第一个发话人！
+        # ==========================================
+        if len(self.players) == 2:
+            # 2人局特殊规则：翻牌前 BTN/SB 先说话
+            first_actor = sb_player
+        else:
+            # 3人及以上常规局：大盲（BB）的左手边第一个人先说话
+            bb_idx = self.players.index(bb_player)
+            first_actor_idx = (bb_idx + 1) % len(self.players)
+            first_actor = self.players[first_actor_idx]
+
+        self.state["current_player_idx"] = self.players.index(first_actor)
+        print(
+            f"[系统] 翻牌前游标已锁定，第一个发话的玩家是：{first_actor} ({self.state['player_positions'][first_actor]})\n")
+
+    def _assign_positions(self, players: list, btn_idx: int) -> dict:
+        """
+        根据玩家总数和当前庄家(BTN)的位置，动态生成极其专业的座位映射字典
+        :param players: 存活玩家的名单列表
+        :param btn_idx: 当前这局牌，庄家(BTN)在 players 列表中的索引
+        """
+        n = len(players)
+        if n < 2:
+            return {players[0]: "BTN"}  # 防御性编程：只剩1个人直接结束
+
+        # 1. 准备标准位置名称数组 (永远按顺时针，从 SB 开始排)
+        if n == 2:
+            # 🚨 德州单挑(Heads-Up)特殊规则：庄家兼任小盲，优先行动
+            roles = ["BTN/SB", "BB"]
+            sb_idx = btn_idx
+        else:
+            # 3人以上常规局：小盲永远在庄家的下一个
+            sb_idx = (btn_idx + 1) % n
+
+            # 根据人数，动态“拉伸”中间的过渡位置
+            if n == 3:
+                roles = ["SB", "BB", "BTN"]
+            elif n == 4:
+                roles = ["SB", "BB", "UTG", "BTN"]
+            elif n == 5:
+                roles = ["SB", "BB", "UTG", "CO", "BTN"]
+            elif n == 6:
+                roles = ["SB", "BB", "UTG", "MP", "CO", "BTN"]
+            else:
+                # 7-9人桌通用动态扩展逻辑
+                fillers = [f"MP{i}" for i in range(1, n - 3)] + ["CO"]
+                roles = ["SB", "BB", "UTG"] + fillers + ["BTN"]
+
+        # 2. 将计算好的角色，映射到具体的玩家身上
+        position_map = {}
+        for physical_idx, player_name in enumerate(players):
+            # 核心数学逻辑：计算当前座位距离小盲位(sb_idx)的环形偏移量
+            role_idx = (physical_idx - sb_idx) % n
+            position_map[player_name] = roles[role_idx]
+
+        return position_map
+
+
     def run_full_hand(self):
         print("\n" + "🃏" * 25)
         print("🚀 AceLogic 引擎点火：新牌局正式开始！")
@@ -51,7 +150,10 @@ class AceLogicGame:
             # 转成字符串存入 State 供 AI 阅读 (例如: ['A♠', 'K♥'])
             self.state["hole_cards"][p] = [str(c) for c in cards]
 
-            # (这里省略了强制扣除盲注的代码，直接进入下注圈)
+        #收取底注和盲注
+        self._collect_blinds_and_antes()
+
+
         self._play_street("翻牌前 (Pre-Flop)")
 
         # 2. 翻牌圈 (Flop)：发 3 张公共牌
@@ -82,20 +184,35 @@ class AceLogicGame:
 
         self.state["stage"] = stage_name
 
-        # 【清盘】：每一条街开始前，重置大家本轮的表态和下注额
-        self.state["current_max_bet"] = 0
-        self.state["current_player_idx"] = 0
+        # 🌟 终极修复：翻牌前的状态由荷官(扣盲注)准备，绝对不能在这里清零！
+        if stage_name != "翻牌前 (Pre-Flop)":
+            # 只有翻牌后 (Flop, Turn, River)，才需要清空桌面下注额
+            self.state["current_max_bet"] = 0
+            for p in self.players:
+                self.state["player_current_bets"][p] = 0
+
+            # 翻牌后，永远从小盲位 (SB) 开始发话
+            sb_player = self._get_player_by_role("SB")
+            if sb_player:
+                self.state["current_player_idx"] = self.players.index(sb_player)
+            else:
+                self.state["current_player_idx"] = 0  # 兜底
+        else:
+            # 翻牌前 (Pre-Flop)：什么都不重置！
+            # 保留 BB 设定的 current_max_bet，保留 UTG 的发话游标！
+            pass
+
+        # ⚠️ 注意：无论哪条街，这轮是否表过态 (player_acted) 必须全员重置为 False！
         for p in self.players:
             self.state["player_acted"][p] = False
-            self.state["player_current_bets"][p] = 0
 
-        # 每次发完新牌，重算胜率！(调用你硬核的 C 级别蒙特卡洛算法)
+        # 每次发完新牌，重算胜率！
         self._update_win_rates()
 
-        # 🚀 将控制权正式移交 LangGraph AI 状态机！
+        # 🚀 移交控制权
         print(f"[后端] 正在唤醒 AI 代理网络进行 {stage_name} 博弈...")
         self.state = self.ai_app.invoke(self.state)
-        time.sleep(1)  # 稍微停顿，让输出更有节奏感
+        time.sleep(1)
 
     def _deal_community_cards(self, count: int):
         """后端荷官发公共牌"""
@@ -194,6 +311,18 @@ class AceLogicGame:
 
         print("💰" * 25 + "\n")
 
+    def _get_player_by_role(self, target_role: str):
+        """
+        根据座位角色（如 'SB', 'BB', 'UTG'）反向查找对应的玩家名字。
+        """
+        for player_name, role in self.state["player_positions"].items():
+            # 🌟 极其重要的兼容：两人局(Heads-Up)时，庄家兼任小盲，名称是 'BTN/SB'
+            if role == target_role or (target_role == "SB" and role == "BTN/SB"):
+                return player_name
+
+        # 防御性编程：如果没有找到（比如在 3 人局里找 'UTG' 是找不到的）
+        return None
+
 
 # ==========================================
 # 🚀 启动入口
@@ -203,7 +332,8 @@ if __name__ == "__main__":
     players_info = {
         "Alice": "极其紧凶（TAG）的职业老手。没有好牌绝不入池，有好牌必重拳出击。",
         "Bob": "松弱（Calling Station）的娱乐玩家。一点点牌就不想走，喜欢一直跟注。",
-        "Charlie": "极其激进的疯子（Maniac）。喜欢用超大下注诈唬别人。"
+        "Charlie": "极其激进的疯子（Maniac）。喜欢用超大下注诈唬别人。",
+        "ying ying": "（TAG）的职业老手。逻辑思维强，能根据场上情况进行判断"
     }
 
     # 实例化游戏引擎，注入你的 ai_app (LangGraph 编译后的应用)
