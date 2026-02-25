@@ -98,7 +98,6 @@ class GameEngine:
         self.dealer.deal_hole_cards()
 
         # 2. 翻牌前 (Pre-Flop) 必须进行
-        self._update_win_rates()
         self._play_street("Pre-Flop")
 
         # 3. 翻牌圈 (Flop) - 🌟 新增判定：有 2 个以上能掏钱的人才下注
