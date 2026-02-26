@@ -26,7 +26,7 @@ class GameEngine:
             "action_history": ["--- 新的一局开始了 ---"],
             "sb_amount": 10,
             "bb_amount": 20,
-            "ante": 0,
+            "ante": 5,
 
             "players": self.players,
             "current_player_idx": 0,

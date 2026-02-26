@@ -1,6 +1,15 @@
+# --- Web 与 数据库基础设施 ---
 fastapi
 uvicorn
 sqlalchemy
 asyncpg
 pydantic
 pydantic-settings
+greenlet
+
+# --- AI 与 大脑引擎 (极其关键！) ---
+langchain
+langchain-core
+langgraph
+langchain-groq
+python-dotenv  # 如果你本地有 .env 文件存 API Key，这个必不可少

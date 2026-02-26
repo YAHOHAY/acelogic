@@ -89,6 +89,6 @@ def simulate_game(req: GameSimulationRequest):
             # 展示所有人的最终筹码余额
             "final_stacks": final_state["player_stacks"],
             # 截取最后 15 条动作历史，让前端知道发生了什么
-            "action_history": final_state["action_history"][-15:]
+            "action_history": final_state["action_history"][-40:]
         }
     }

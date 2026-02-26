@@ -53,11 +53,14 @@ class Dealer:
 
     def collect_blinds_ante(self, sb_amount: int, bb_amount: int, ante :int):
         players = self.state["players"]
-        for p in players:
-            self.state["player_total_invested"][p] += ante
-            self.state["player_stacks"][p] -= ante
-            self.state["player_current_bets"][p] += ante
-            self.state["pot"] += ante
+        if ante > 0 :
+            for p in players:
+                stack = self.state["player_stacks"][p]
+                ante = min(stack, ante)
+                self.state["player_total_invested"][p] += ante
+                self.state["player_stacks"][p] -= ante
+                self.state["pot"] += ante
+
         """强制扣除大小盲注"""
         sb_player = self.get_player_by_role("SB")
         bb_player = self.get_player_by_role("BB")

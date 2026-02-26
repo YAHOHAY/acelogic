@@ -1,5 +1,7 @@
 import os
 from typing import TypedDict
+
+from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 
 from ai_agent.promots import PokerDecision, build_action_prompt, build_strategy_prompt
@@ -7,7 +9,11 @@ from ai_agent.promots import PokerDecision, build_action_prompt, build_strategy_
 # ==========================================
 # 0. 初始化大模型 (请填入你的真实 Key)
 # ==========================================
-os.environ["GROQ_API_KEY"] = ""
+# 1. 自动寻找并加载项目根目录下的 .env 文件
+load_dotenv()
+
+# 2. 从系统环境变量中安全地把 Key 提取出来
+GROQ_KEY = os.getenv("GROQ_API_KEY")
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.7)
 structured_llm = llm.with_structured_output(PokerDecision)
 
@@ -33,12 +39,13 @@ def perception_node(state: AgentThinkingState):
     """👁️ 节点 1：感知与计算压力"""
     p_name = state["player_name"]
     t_state = state["table_state"]
+    stack = state["table_state"]["player_stacks"][p_name]
 
     current_max = t_state["current_max_bet"]
     my_bet = t_state["player_current_bets"][p_name]
     call_amount = current_max - my_bet
 
-    print(f"\n[🧠 {p_name} 的大脑 - 节点1: 感知] 面临下注压力: {call_amount}")
+    print(f"\n[🧠 {p_name} 的大脑 - 节点1: 感知] 面临下注压力: {call_amount},还剩多少钱{stack}")
     return {"call_amount": call_amount}
 
 

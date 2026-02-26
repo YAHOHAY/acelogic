@@ -8,6 +8,8 @@ services:
       - "8000:8000" # 把容器的 8000 映射到你电脑的 8000
     depends_on:
       - db  # 重点：告诉 Docker，API 必须等 DB 启动后再启动
+    env_file:
+      - .env
     environment:
       # 这里就是传给 Python 的环境变量！
       # 注意这里的 URL 变成了 @db:5432，Docker 的内部 DNS 会自动把它解析到下面的 db 容器
