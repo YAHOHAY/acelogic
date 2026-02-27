@@ -4,7 +4,7 @@ from typing import TypedDict
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 
-from ai_agent.promots import PokerDecision, build_action_prompt, build_strategy_prompt
+from ace_logic.ai_agent.promots import PokerDecision, build_action_prompt, build_strategy_prompt
 
 # ==========================================
 # 0. 初始化大模型 (请填入你的真实 Key)
@@ -25,7 +25,6 @@ class AgentThinkingState(TypedDict):
     """AI 思考时的脑部草稿本，绝对不会污染引擎的 TableState"""
     table_state: dict
     player_name: str
-
     call_amount: int
     inner_monologue: str
     final_action: str
@@ -45,7 +44,7 @@ def perception_node(state: AgentThinkingState):
     my_bet = t_state["player_current_bets"][p_name]
     call_amount = current_max - my_bet
 
-    print(f"\n[🧠 {p_name} 的大脑 - 节点1: 感知] 面临下注压力: {call_amount},还剩多少钱{stack}")
+    print(f"\n[🧠 {p_name} 的大脑 - 节点1: 感知] 面临下注压力: {call_amount},还剩多少{stack}筹码")
     return {"call_amount": call_amount}
 
 

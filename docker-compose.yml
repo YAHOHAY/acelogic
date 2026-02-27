@@ -1,22 +1,25 @@
-
 services:
   # --- 你的 Python 核心 API 服务 ---
   api:
-    build: .  # 告诉 docker 去当前目录找 Dockerfile 进行构建
+    build: .
     container_name: acelogic_api
     ports:
-      - "8000:8000" # 把容器的 8000 映射到你电脑的 8000
-    depends_on:
-      - db  # 重点：告诉 Docker，API 必须等 DB 启动后再启动
+      - "8000:8000"
+    volumes:
+      - .:/app  # 将本地代码实时映射到容器
+    # 覆盖 Dockerfile 的 CMD，强制开启热更新！
+    command: uvicorn ace_logic.main:app --host 0.0.0.0 --port 8000 --reload
+
     env_file:
       - .env
     environment:
-      # 这里就是传给 Python 的环境变量！
-      # 注意这里的 URL 变成了 @db:5432，Docker 的内部 DNS 会自动把它解析到下面的 db 容器
+      # 让 Python 知道自己在 Docker 里，去连叫 db 的容器
       - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/acelogic_db
-        # 👇 加上这两行“魔法代码” 👇
-    volumes:
-      - .:/app  # 把当前目录(.) 映射到容器里的 /app 目录
+    depends_on:
+      db:
+        condition: service_healthy # 🚀 大厂绝招：绝对等待 DB 就绪才启动 API！
+
+  # --- 你的 PostgreSQL 数据库服务 ---
   db:
     image: postgres:15-alpine
     container_name: acelogic_postgres
@@ -28,6 +31,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # 🚀 大厂绝招：心跳检测探针
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d acelogic_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

@@ -2,20 +2,34 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import time
+from ace_logic.ai_agent.graph import PokerLangGraphAgent
+from ace_logic.engine.game import GameEngine
+from ace_logic.database import init_models
 
-from ai_agent.graph import PokerLangGraphAgent
-from engine.game import GameEngine
 
-# 导入我们的核心引擎和 AI 大脑
+from contextlib import asynccontextmanager
+
 
 # ==========================================
-# 1. 实例化 FastAPI 应用 (Uvicorn 的唯一入口)
+# ⚡ 新增：定义应用的生命周期
 # ==========================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动前执行：连接数据库并建表
+    print("[系统] 正在连接数据库并校验表结构...")
+    await init_models()
+    yield
+    # 关闭后执行：可以在这里写清理资源的代码（目前留空即可）
+    print("[系统] 服务器已关闭。")
+
+# 修改原有的 app 实例化，把 lifespan 挂载进去：
 app = FastAPI(
     title="AceLogic AI Poker Server",
     description="基于 LangGraph 的多智能体德州扑克推演引擎",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan  # 👈 加上这一行！
 )
+
 
 # ==========================================
 # 2. 全局单例初始化 (性能优化极致体现)

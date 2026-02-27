@@ -1,5 +1,5 @@
 from ace_logic.core.deck import Deck
-from engine.state import TableState
+from ace_logic.engine.state import TableState
 
 
 class Dealer:

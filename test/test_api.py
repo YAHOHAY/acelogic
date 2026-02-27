@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from main import app  # 确保这里导入的是你 main.py 里的 app 实例
+from ace_logic.main import app  # 确保这里导入的是你 main.py 里的 app 实例
 
 
 def test_win_rate_api():

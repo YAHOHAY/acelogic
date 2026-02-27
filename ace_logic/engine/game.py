@@ -4,8 +4,8 @@ from typing import List
 
 from ace_logic.utils.evaluator import HandEvaluator
 from ace_logic.utils.ratecalculate import WinRateCalculator
-from engine.dealer import Dealer
-from engine.state import TableState
+from ace_logic.engine.dealer import Dealer
+from ace_logic.engine.state import TableState
 HandEvaluator.load_lookup_table()
 
 

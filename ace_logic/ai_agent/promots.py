@@ -30,6 +30,7 @@ def build_strategy_prompt(p_name: str, persona: str, t_state: dict, call_amount:
     stack = t_state.get('player_stacks', {}).get(p_name, 0)
     pot = t_state.get('pot', 0)
     stage = t_state.get('stage', '未知')
+    history = t_state.get('action_history',"weizhi")
     current_max_bet = t_state.get('current_max_bet', 0)
     # 在组装 prompt 之前算一下
     stack_ratio = (call_amount / stack) * 100 if stack > 0 else 0
@@ -45,6 +46,7 @@ def build_strategy_prompt(p_name: str, persona: str, t_state: dict, call_amount:
 
     【客观牌局信息】
     当前阶段：{stage}
+    行动历史：{history}
     底池大小：{pot}
     公共牌：{t_state.get('community_cards', [])}
     最近的历史动作：{t_state.get('action_history', [])[-4:]}

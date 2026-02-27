@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, START, END
 
-from ai_agent.nodes import AgentThinkingState, perception_node, strategy_node, action_node
+from ace_logic.ai_agent.nodes import AgentThinkingState, perception_node, strategy_node, action_node
 
 
 # ==========================================

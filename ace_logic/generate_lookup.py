@@ -44,7 +44,7 @@ def generate_minimal_lookup():
 
                 lookup_table[prime_prod] = strength
 
-    with open("hand_lookup.json", "w") as f:
+    with open("../hand_lookup.json", "w") as f:
         json.dump(lookup_table, f)
 
     print(f"成功！生成了 {len(lookup_table)} 个唯一质数条目。")
