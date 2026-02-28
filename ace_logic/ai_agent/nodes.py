@@ -3,7 +3,7 @@ from typing import TypedDict
 
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
-
+from langgraph.checkpoint.memory import MemorySaver
 from ace_logic.ai_agent.promots import PokerDecision, build_action_prompt, build_strategy_prompt
 
 # ==========================================
@@ -31,6 +31,22 @@ class AgentThinkingState(TypedDict):
     final_amount: int
 
 
+def human_action_node(state: AgentThinkingState):
+    """人类动作节点（休眠舱）"""
+    print(f"[👤 人类节点] 成功唤醒！提取到人类玩家的操作: {state.get('final_action')} {state.get('final_amount')}")
+    # 只需要返回一个空字典，告诉底层框架：“我什么都不修改，直接放行”
+    return {}
+
+
+def route_player_type(state: AgentThinkingState) -> str:
+    """条件裁判：决定下一步去哪个节点"""
+    player_name = state["player_name"]
+
+    # 我们制定一个简单的物理规则：名字叫 "AHA" 或者带有 "Human" 字符串的就是真实人类
+    if player_name == "AHA" or "Human" in player_name:
+        return "human_action_node"  # 引导向人类节点
+    else:
+        return "perception"  # 引导向 AI 思考节点
 # ==========================================
 # 2. 具体执行节点 (Nodes)
 # ==========================================
